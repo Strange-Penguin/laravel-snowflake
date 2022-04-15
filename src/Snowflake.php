@@ -6,7 +6,7 @@ use Exception;
 
 class Snowflake
 {
-    protected const DEFAULT_EPOCH_DATETIME = '2021-02-02 00:00:00';
+    protected const DEFAULT_EPOCH_DATETIME = '2022-04-15 00:00:00';
 
     protected const ID_BITS = 63;
 
@@ -81,26 +81,26 @@ class Snowflake
     {
         $timestamp = $this->timestamp();
 
-        // もし、今回生成したタイムスタンプが、前回生成したタイムスタンプより過去のものなら、待機する
-        // そもそもこのような状況が起こるのかは不明なので、不要かもしれない。
+        // If the time stamp generated this time is older than the time stamp generated last time, wait
+        // It's unclear if this will happen in the first place, so it may not be necessary.
         if ($timestamp < $this->lastTimestamp) {
             $waitTime = $this->lastTimestamp - $timestamp;
 
-            // 待機時間がtimeout以上なら、例外を投げる
+            // Throw an exception if the wait time is greater than or equal to timeout
             if ($waitTime > self::TIMEOUT) {
                 $errorLog = "[Timeout({self::TIMEOUT})] Couldn't generation snowflake id, os time is backwards. [last timestamp:" . $this->lastTimestamp ."]";
                 throw new Exception($errorLog);
             }
 
-            // 待機時間がtimeout以下なら、待機して再生成
+            // If the wait time is less than or equal to timeout, wait and regenerate
             usleep($this->lastTimestamp - $timestamp);
             return $this->next();
         }
 
-        // タイムスタンプが同じなら、シーケンスをインクリメント
+        // Increment the sequence if the timestamps are the same
         if ($timestamp === $this->lastTimestamp) {
             $this->sequence = $this->sequence + 1;
-            // シーケンス番号が最大値を超えたら、待機して再生成
+            // If the sequence number exceeds the maximum value, wait and regenerate
             if ($this->sequence > 4095) {
                 usleep(1);
                 $this->sequence = 0;
